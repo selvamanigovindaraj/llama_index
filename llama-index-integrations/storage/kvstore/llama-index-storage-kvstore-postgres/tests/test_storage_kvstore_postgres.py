@@ -89,7 +89,7 @@ def test_creates_schema_if_it_does_not_exist():
             return_value=mock_async_engine,
         ),
         patch("sqlalchemy.orm.sessionmaker", return_value=mock_session_factory),
-        patch("sqlalchemy.inspect", return_value=mock_inspector),
+        patch("llama_index.storage.kvstore.postgres.base.inspect", return_value=mock_inspector),
     ):
         pgstore = PostgresKVStore(
             table_name="test_table",
@@ -150,7 +150,7 @@ def test_does_nothing_if_schema_already_exists():
             return_value=mock_async_engine,
         ),
         patch("sqlalchemy.orm.sessionmaker", return_value=mock_session_factory),
-        patch("sqlalchemy.inspect", return_value=mock_inspector),
+        patch("llama_index.storage.kvstore.postgres.base.inspect", return_value=mock_inspector),
     ):
         pgstore = PostgresKVStore(
             table_name="test_table",
@@ -294,7 +294,7 @@ def test_schema_name_with_special_characters():
             return_value=mock_async_engine,
         ),
         patch("sqlalchemy.orm.sessionmaker", return_value=mock_session_factory),
-        patch("sqlalchemy.inspect", return_value=mock_inspector),
+        patch("llama_index.storage.kvstore.postgres.base.inspect", return_value=mock_inspector),
     ):
         special_schema = "test'schema"
         pgstore = PostgresKVStore(
