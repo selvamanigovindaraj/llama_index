@@ -198,71 +198,15 @@ class RedisCacheToolSpec(BaseToolSpec):
             excluded_llm_metadata_keys=["response"],
         )
 
-        # Use async insert if available, otherwise fallback to sync insert (VectorStoreIndex might not have ainsert_nodes exposed directly on index, but storage context does?)
-        # VectorStoreIndex doesn't have ainsert_nodes.
-        # But we can use the ingestion pipeline or just insert to vector store directly?
-        # Ideally we use index.insert_nodes which handles embedding.
-        # VectorStoreIndex.insert_nodes is sync.
-        # There is no async insert_nodes on VectorStoreIndex yet?
-        # Let's check if we can use the storage context or vector store directly.
-        # But we need embedding.
-
-        # If we want to be truly async, we should generate embedding async and then insert async.
-        # But VectorStoreIndex abstracts this.
-        # For now, we might have to call sync insert_nodes.
-        # Wait, let's check if VectorStoreIndex has `insert` method? No.
-
-        # Actually, if we use `self._index.insert_nodes`, it uses the embed model.
-        # If embed model is sync, it blocks.
-        # If we want async, we might need to do it manually:
-        # 1. Embed query async
-        # 2. Add to vector store async
-
-        # However, for the purpose of this tool, calling the sync insert_nodes might be acceptable if the underlying store supports it.
-        # But `client.expire` should be async if we use async client.
-
-        # Let's stick to sync insert for now as `VectorStoreIndex` doesn't seem to have easy async insert.
-        # But we can make the expire async.
-
         self._index.insert_nodes([node])
 
-        # Use public client property (might be sync or async depending on how initialized)
-        # RedisVectorStore.client returns the client being used.
-        # If we initialized with redis_url, it created a sync client by default in `__init__`.
-        # But RedisVectorStore also has `_redis_client_async`.
-        # The `client` property returns `_async_index.client` if `_async_index` is set?
-        # Let's check the property again:
-        # if self._async_index: return self._async_index.client
-        # return self._index.client
-
-        # So if we want async client, we need to ensure async index is created.
-        # RedisVectorStore creates async index if `redis_client_async` is passed or if we call `aquery`?
-        # Actually in `__init__` of RedisVectorStore:
-        # if not self._redis_client_async: self._redis_client_async = redis_async.Redis(...)
-
-        # So it seems it always has an async client available internally?
-        # But `client` property returns one or the other.
-
-        # If we want to be safe, we can try to access the async client if possible or just use the sync client for expire since it's fast.
-        # But `aadd_to_cache` should ideally be async.
-
-        # Let's assume `client` returns a client we can use. If it's sync client, `expire` is sync.
-        # If we want to use async expire, we need the async client.
-        # RedisVectorStore doesn't expose `async_client` property publicly?
-        # It has `_redis_client_async`.
-
-        # Given the constraints and "No private member access", we should rely on what `client` gives us.
-        # If `client` is sync, we call it sync.
-
         client = self._vector_store.client
-
         schema = self._vector_store.schema
         prefix = schema.index.prefix
         key_separator = schema.index.key_separator
 
         key = f"{prefix}{key_separator}{node.node_id}"
 
-        # Check if client is async
         import redis.asyncio as redis_async
 
         if isinstance(client, redis_async.Redis):
